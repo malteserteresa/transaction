@@ -21,7 +21,7 @@ public class StatisticsController {
 	}
 
 	@RequestMapping(value = "/statistics", method = RequestMethod.GET)
-	public HashMap<String, String> retrieveStatistics() {
+	public HashMap<String, Object> retrieveStatistics() {
 		Statistics stats = new Statistics(state.retrieve());
 		return stats.getSummary();
 	}

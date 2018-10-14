@@ -2,26 +2,53 @@ package com.n26.model;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Set;
 
 public class Statistics {
 
-	ArrayList<Transaction> transactions;
-	private ArrayList<BigDecimal> amounts;
+	private HashMap<Long, ArrayList<BigDecimal>> transactions;
+	private Collection<BigDecimal> amounts;
 
-	public Statistics(ArrayList<Transaction> transactions) {
+	public Statistics(HashMap<Long, ArrayList<BigDecimal>> transactions) {
 		this.transactions = transactions;
 		this.amounts = getAmounts();
 	}
 
-	public ArrayList<BigDecimal> getAmounts() {
-		ArrayList<BigDecimal> amounts = new ArrayList<>();
+	public HashMap<Long, ArrayList<BigDecimal>> filter() {
+		return new HashMap<Long, ArrayList<BigDecimal>>();
+	}
 
-		for (Transaction t : transactions) {
-			amounts.add(round(t.getAmount()));
+	public ArrayList<BigDecimal> getAmounts() {
+		HashMap<Long, ArrayList<BigDecimal>> out = new HashMap<>();
+
+		long now = ZonedDateTime.now().withZoneSameInstant(ZoneOffset.UTC).toInstant().toEpochMilli();
+		long minute = 60 * 1000;
+		long oneMinuteAgo = now - minute;
+
+		Set<Long> keys = transactions.keySet();
+
+		for (Long key : keys) {
+			if (key >= oneMinuteAgo) {
+				out.put(key, transactions.get(key));
+			}
 		}
-		return amounts;
+
+		ArrayList<BigDecimal> flattenedAmounts = new ArrayList<BigDecimal>();
+		Set<Long> filteredKeys = out.keySet();
+
+		for (Long k : filteredKeys) {
+			ArrayList<BigDecimal> values = out.get(k);
+			for (BigDecimal value : values) {
+				flattenedAmounts.add(round(value));
+			}
+		}
+		return flattenedAmounts;
 	}
 
 	public BigDecimal getMax() {
@@ -29,12 +56,12 @@ public class Statistics {
 	}
 
 	public BigDecimal getMin() {
-		return amounts.stream().reduce(amounts.get(0), BigDecimal::min);
+		Iterator<BigDecimal> it = amounts.iterator();
+		return amounts.stream().reduce(it.next(), BigDecimal::min);
 	}
 
 	public BigDecimal getSum() {
-		BigDecimal sum = amounts.stream().reduce(BigDecimal.ZERO, BigDecimal::add);
-		return sum;
+		return amounts.stream().reduce(BigDecimal.ZERO, BigDecimal::add);
 	}
 
 	public BigDecimal getMean() {
@@ -46,31 +73,34 @@ public class Statistics {
 
 	}
 
-	public HashMap<String, String> getSummary() {
-		if (getSum() != null && getMean() != null && getMax() != null && getMin() != null) {
-
-			HashMap<String, String> summary = new HashMap<>();
-			summary.put("sum", getSum().toString());
-			summary.put("avg", getMean().toString());
-			summary.put("max", getMax().toString());
-			summary.put("min", getMin().toString());
-			summary.put("count", Long.toString(getCount()));
-
-			return summary;
-		} else {
-			HashMap<String, String> summary = new HashMap<>();
-			summary.put("sum", "0");
-			summary.put("avg", "0");
-			summary.put("max", null);
-			summary.put("min", null);
-			summary.put("count", "0");
-
-			return summary;
+	public HashMap<String, Object> getSummary() {
+		if (getCount() == 0) {
+			return defaultSummary();
 		}
+		HashMap<String, Object> summary = new HashMap<>();
+		summary.put("sum", getSum().toString());
+		summary.put("avg", getMean().toString());
+		summary.put("max", getMax().toString());
+		summary.put("min", getMin().toString());
+		summary.put("count", getCount());
+
+		return summary;
+
 	}
 
 	public long getCount() {
 		return amounts.size();
+	}
+
+	private HashMap<String, Object> defaultSummary() {
+		HashMap<String, Object> summary = new HashMap<>();
+		summary.put("sum", "0.00");
+		summary.put("avg", "0.00");
+		summary.put("max", "0.00");
+		summary.put("min", "0.00");
+		summary.put("count", 0);
+
+		return summary;
 	}
 
 	// TODO FIX THIS

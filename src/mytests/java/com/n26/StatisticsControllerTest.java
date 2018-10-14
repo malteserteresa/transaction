@@ -1,6 +1,6 @@
 package com.n26;
 
-import java.math.BigDecimal;
+import java.util.Collection;
 import java.util.HashMap;
 
 import org.junit.Test;
@@ -10,20 +10,31 @@ import com.n26.repository.State;
 
 public class StatisticsControllerTest {
 
-	StatisticsController controller = new StatisticsController(new State());
+	private TestDataFactory factory = new TestDataFactory();
 
-	BigDecimal amount = new BigDecimal("1.00");
+	StatisticsController controller = new StatisticsController(factory.createState());
 
 	@Test
 	public void retrieveStatistics_returnsCorrectStatistics() throws Exception {
 
-		HashMap<String, String> response = create();
+		HashMap<String, Object> response = controller.retrieveStatistics();
+
+		System.out.println(response);
 
 	}
 
-	private HashMap<String, String> create() {
+	@Test
+	public void retrieveStatistics_noTransactions_returnsDefaultStatistics() throws Exception {
+		StatisticsController controller = new StatisticsController(new State());
 
-		return controller.retrieveStatistics();
+		HashMap<String, Object> response = controller.retrieveStatistics();
+
+		assertEqualSummaries(factory.defaultSummary().values(), response.values());
+
 	}
 
+	public boolean assertEqualSummaries(Object targetValues, Collection<Object> sourceValues) {
+		return (targetValues.equals(sourceValues)) ? true : false;
+
+	}
 }
