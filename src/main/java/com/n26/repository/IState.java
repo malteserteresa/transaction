@@ -1,7 +1,6 @@
 package com.n26.repository;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.HashMap;
 
 import com.n26.model.Transaction;
@@ -12,6 +11,6 @@ public interface IState {
 
 	public void delete();
 
-	public HashMap<Long, ArrayList<BigDecimal>> retrieve();
+	public HashMap<Long, BigDecimal> retrieve();
 
 }

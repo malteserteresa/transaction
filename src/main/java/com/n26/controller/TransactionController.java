@@ -1,7 +1,5 @@
 package com.n26.controller;
 
-import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
 import java.time.format.DateTimeParseException;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -21,6 +19,7 @@ import com.n26.controller.strategy.InFuture;
 import com.n26.controller.strategy.InPast;
 import com.n26.model.Transaction;
 import com.n26.repository.State;
+import com.n26.util.Time;
 
 @RestController
 @RequestMapping(value = "/transactions")
@@ -36,23 +35,19 @@ public class TransactionController {
 	@RequestMapping(method = RequestMethod.POST)
 	public ResponseEntity<Object> createTransaction(@RequestBody Transaction transaction) {
 
-		long now = ZonedDateTime.now().withZoneSameInstant(ZoneOffset.UTC).toInstant().toEpochMilli();
-		long minute = 60 * 1000;
-		long oneMinuteAgo = now - minute;
-
 		long timeStamp;
 		try {
-			timeStamp = transaction.getEpochMilli();
+			timeStamp = transaction.getNanoseconds();
 		} catch (DateTimeParseException dtp) {
 			return new ResponseEntity<>(HttpStatus.UNPROCESSABLE_ENTITY);
 		}
 
-		if (timeStamp > now) {
+		if (timeStamp > Time.now()) {
 			InFuture strategy = new InFuture();
 			return strategy.requestHandler();
 		}
 
-		if (timeStamp >= oneMinuteAgo) {
+		if (timeStamp >= Time.oneMinuteAgo()) {
 			state.create(transaction);
 			return new ResponseEntity<>(HttpStatus.CREATED);
 		}

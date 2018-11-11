@@ -5,39 +5,43 @@ import static org.junit.Assert.assertTrue;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 
 import org.junit.Test;
 
 import com.n26.model.Statistics;
+import com.n26.repository.State;
 
-public class StatisticsTest {
+public class StatisticsTest extends Helper {
 
-	/*
-	 * Change retrieve Change data
-	 */
+	HashMap<String, BigDecimal> transactions = (HashMap<String, BigDecimal>) factory.recentTransactions();
 
-	private TestDataFactory factory = new TestDataFactory();
+	private final State state = factory.createState(transactions);
 
-	private HashMap<Long, ArrayList<BigDecimal>> transactions = factory.data();
-	private Statistics stats = new Statistics(transactions);
+	private final Statistics stats = new Statistics(state.retrieve());
 
-	private ArrayList<BigDecimal> targetData = factory.dummyTransactions();
+	private final ArrayList<BigDecimal> amounts = stats.getAmounts();
+
+	private final ArrayList<BigDecimal> targetData = factory.incomingAmounts();
+
+	@Test
+	public void getAmounts_validRequest_returnsAmounts() {
+		assertTrue(amounts.stream().allMatch(amount -> amounts.contains(amount)));
+	}
+
+	@Test
+	public void getAmounts_initalState_returnsAmounts() {
+		assertTrue(amounts.stream().allMatch(amount -> amounts.contains(amount)));
+	}
 
 	@Test
 	public void nullTranscations_returnsDefaultSummary() {
-		transactions.clear();
-		Statistics noTransactions = new Statistics(transactions);
+
+		Statistics noTransactions = new Statistics(new HashMap<Long, BigDecimal>());
 
 		HashMap<String, Object> defaultResponse = factory.defaultSummary();
 
 		assertEqualSummaries(defaultResponse.values(), noTransactions.getSummary().values());
-	}
-
-	public boolean assertEqualSummaries(Object targetValues, Collection<Object> sourceValues) {
-		return (targetValues.equals(sourceValues)) ? true : false;
-
 	}
 
 	@Test
@@ -74,14 +78,8 @@ public class StatisticsTest {
 
 	@Test
 	public void getSummary() {
-		HashMap<String, BigDecimal> targetSummary = new HashMap<String, BigDecimal>();
-		targetSummary.put("min", new BigDecimal("12.3"));
-		targetSummary.put("max", new BigDecimal("34.9"));
-		targetSummary.put("avg", new BigDecimal("17.98"));
-		targetSummary.put("sum", new BigDecimal("71.91"));
-		targetSummary.put("count", new BigDecimal(4L));
 
-		assertEqualSummaries(targetSummary.values(), stats.getSummary().values());
+		assertEqualSummaries(factory.targetSummary().values(), stats.getSummary().values());
 
 	}
 

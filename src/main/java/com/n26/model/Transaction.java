@@ -1,8 +1,9 @@
 package com.n26.model;
 
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.time.format.DateTimeParseException;
+
+import com.n26.util.Time;
 
 public class Transaction {
 
@@ -16,18 +17,16 @@ public class Transaction {
 	}
 
 	public BigDecimal getAmount() {
-		return amount;
+		// TODO NOT CORRECT BEHAVIOUR BUT WHAT IS?
+		return amount != null ? amount : new BigDecimal("0.00");
 	}
 
-	public String getTimestamp() {
-		return timestamp;
-	}
-
-	public long getEpochMilli() throws DateTimeParseException {
-		if (getTimestamp() != null) {
-			return Instant.parse(getTimestamp()).toEpochMilli();
+	public long getNanoseconds() throws DateTimeParseException {
+		if (timestamp == null || timestamp.isEmpty()) {
+			// TODO NOT CORRECT BEHAVIOUR BUT WHAT IS? - DEFENSIVE CODING
+			throw new IllegalArgumentException();
 		}
-		return 0;
+		return Time.convert(timestamp);
 	}
 
 }

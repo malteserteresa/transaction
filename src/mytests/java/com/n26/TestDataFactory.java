@@ -5,15 +5,17 @@ import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map.Entry;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import com.n26.model.Transaction;
 import com.n26.repository.State;
 
 public class TestDataFactory {
 
-	public ArrayList<BigDecimal> dummyTransactions() {
+	// Creates a list of amounts to be used to set up the system
+	public ArrayList<BigDecimal> incomingAmounts() {
 		ArrayList<BigDecimal> data = new ArrayList<>();
 
 		data.add(new BigDecimal("12.30"));
@@ -21,8 +23,62 @@ public class TestDataFactory {
 
 		data.add(new BigDecimal("12.355"));
 		data.add(new BigDecimal("12.354"));
+
 		return data;
 
+	}
+
+	// creates the fake incoming transaction data that is historic
+	public Map<String, BigDecimal> historicTransactions() {
+
+		ArrayList<BigDecimal> amounts = incomingAmounts();
+
+		ArrayList<String> timestamps = incomingTimestamps("HISTORIC", amounts.size());
+
+		return IntStream.range(0, timestamps.size()).boxed()
+				.collect(Collectors.toMap(i -> timestamps.get(i), i -> amounts.get(i)));
+	}
+
+	public ArrayList<String> incomingTimestamps(String timePeriod, int n) {
+		ArrayList<String> timestamps = null;
+		switch (timePeriod) {
+		case "HISTORIC":
+			timestamps = IntStream.range(1, n + 1).boxed()
+					.map(i -> ZonedDateTime.of(2018, 1, i, 0, 0, 0, 1, ZoneOffset.UTC).toString())
+					.collect(Collectors.toCollection(ArrayList::new));
+			break;
+		case "CURRENT":
+			timestamps = IntStream.range(1, n + 1).boxed()
+					.map(i -> ZonedDateTime.now().minusSeconds(1 * n).withZoneSameInstant(ZoneOffset.UTC).toString())
+					.collect(Collectors.toCollection(ArrayList::new));
+			break;
+		}
+		return timestamps;
+
+	}
+
+	// STREAMS
+	// intstream.range() needs .boxed()
+	// stream.concat
+	// Collectors.X or Collectors.toCollection()
+	// create
+	public Map<String, BigDecimal> recentTransactions() {
+
+		ArrayList<BigDecimal> amounts = incomingAmounts();
+
+		ArrayList<String> timestamps = incomingTimestamps("CURRENT", amounts.size());
+
+		return IntStream.range(0, timestamps.size()).boxed()
+				.collect(Collectors.toMap(i -> timestamps.get(i), i -> amounts.get(i)));
+
+	}
+
+	public State createState(HashMap<String, BigDecimal> transactions) {
+		State state = new State();
+
+		transactions.keySet().stream().forEach(key -> state.create(new Transaction(transactions.get(key), key)));
+
+		return state;
 	}
 
 	public HashMap<String, Object> defaultSummary() {
@@ -36,82 +92,14 @@ public class TestDataFactory {
 		return summary;
 	}
 
-	public ArrayList<String> createTimestamps(int n) {
-		ArrayList<String> timestamps = new ArrayList<>();
-		int i = 0;
-		while (i < n) {
-			i++;
-			String ts = ZonedDateTime.of(2018, 1, i, 0, 0, 0, 1, ZoneOffset.UTC).toString();
-			timestamps.add(ts);
+	public HashMap<String, BigDecimal> targetSummary() {
+		HashMap<String, BigDecimal> summary = new HashMap<String, BigDecimal>();
+		summary.put("min", new BigDecimal("12.3"));
+		summary.put("max", new BigDecimal("34.9"));
+		summary.put("avg", new BigDecimal("17.98"));
+		summary.put("sum", new BigDecimal("71.91"));
+		summary.put("count", new BigDecimal(4L));
 
-		}
-		return timestamps;
-	}
-
-	public HashMap<String, ArrayList<BigDecimal>> incomingData() {
-
-		ArrayList<BigDecimal> transactions = dummyTransactions();
-		int size = transactions.size();
-		ArrayList<String> timestamps = createTimestamps(size);
-
-		HashMap<String, ArrayList<BigDecimal>> data = new HashMap<>();
-		int i = 0;
-		while (i < size) {
-			ArrayList<BigDecimal> amounts = new ArrayList<>();
-			amounts.add(transactions.get(i));
-
-			data.put(timestamps.get(i), amounts);
-			i++;
-		}
-		return data;
-	}
-
-	public ArrayList<Long> createEpoch(int n) {
-		ArrayList<Long> timestamps = new ArrayList<>();
-		int i = 0;
-		while (i < n) {
-			i++;
-			long now = ZonedDateTime.now().withZoneSameInstant(ZoneOffset.UTC).toInstant().toEpochMilli();
-			long ago = i * 1000;
-			long ts = now - ago;
-
-			timestamps.add(ts);
-
-		}
-		return timestamps;
-	}
-
-	public HashMap<Long, ArrayList<BigDecimal>> data() {
-
-		ArrayList<BigDecimal> transactions = dummyTransactions();
-		int size = transactions.size();
-		ArrayList<Long> timestamps = createEpoch(size);
-
-		HashMap<Long, ArrayList<BigDecimal>> data = new HashMap<>();
-		int i = 0;
-		while (i < size) {
-			ArrayList<BigDecimal> amounts = new ArrayList<>();
-			amounts.add(transactions.get(i));
-
-			data.put(timestamps.get(i), amounts);
-			i++;
-		}
-		return data;
-
-	}
-
-	public State createState() {
-	HashMap<String, ArrayList<BigDecimal>> transactions = incomingData();
-	State state = new State();
-
-	Iterator<Entry<String, ArrayList<BigDecimal>>> it = transactions.entrySet().iterator();
-	while (it.hasNext()) {
-		Entry<String, ArrayList<BigDecimal>> pair = it.next();
-
-		Transaction transaction = new Transaction(pair.getValue().get(0), pair.getKey());
-		state.create(transaction);
-		
-	}
-	return state;
+		return summary;
 	}
 }

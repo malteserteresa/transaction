@@ -2,53 +2,42 @@ package com.n26.model;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Set;
 
+import com.n26.util.Time;
+
 public class Statistics {
 
-	private HashMap<Long, ArrayList<BigDecimal>> transactions;
-	private Collection<BigDecimal> amounts;
+	private final HashMap<Long, BigDecimal> transactions;
+	private final ArrayList<BigDecimal> amounts;
 
-	public Statistics(HashMap<Long, ArrayList<BigDecimal>> transactions) {
+	public Statistics(HashMap<Long, BigDecimal> transactions) {
 		this.transactions = transactions;
 		this.amounts = getAmounts();
 	}
 
-	public HashMap<Long, ArrayList<BigDecimal>> filter() {
-		return new HashMap<Long, ArrayList<BigDecimal>>();
-	}
-
 	public ArrayList<BigDecimal> getAmounts() {
-		HashMap<Long, ArrayList<BigDecimal>> out = new HashMap<>();
+		HashMap<Long, BigDecimal> filteredTransactions = new HashMap<>();
 
-		long now = ZonedDateTime.now().withZoneSameInstant(ZoneOffset.UTC).toInstant().toEpochMilli();
-		long minute = 60 * 1000;
-		long oneMinuteAgo = now - minute;
+		Set<Long> times = transactions.keySet();
 
-		Set<Long> keys = transactions.keySet();
-
-		for (Long key : keys) {
-			if (key >= oneMinuteAgo) {
-				out.put(key, transactions.get(key));
+		for (Long time : times) {
+			if (time >= Time.oneMinuteAgo()) {
+				filteredTransactions.put(time, transactions.get(time));
 			}
 		}
 
-		ArrayList<BigDecimal> flattenedAmounts = new ArrayList<BigDecimal>();
-		Set<Long> filteredKeys = out.keySet();
+		ArrayList<BigDecimal> amounts = new ArrayList<BigDecimal>();
+		Set<Long> filteredTimes = filteredTransactions.keySet();
 
-		for (Long k : filteredKeys) {
-			ArrayList<BigDecimal> values = out.get(k);
-			for (BigDecimal value : values) {
-				flattenedAmounts.add(round(value));
-			}
+		for (Long fTime : filteredTimes) {
+			amounts.add(round(filteredTransactions.get(fTime)));
+
 		}
-		return flattenedAmounts;
+		return amounts;
 	}
 
 	public BigDecimal getMax() {

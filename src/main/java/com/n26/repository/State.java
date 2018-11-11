@@ -1,9 +1,6 @@
 package com.n26.repository;
 
 import java.math.BigDecimal;
-import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Set;
 
@@ -12,27 +9,29 @@ import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
 import com.n26.model.Transaction;
+import com.n26.util.Time;
 
 @Service
 @Primary
 @Component
 public class State implements IState {
 
-	public HashMap<Long, ArrayList<BigDecimal>> transactions = new HashMap<>();
+	private final long time = Time.oneMinuteAgo();
+
+	public HashMap<Long, BigDecimal> transactions = new HashMap<>();
 
 	@Override
 	public void create(Transaction transaction) {
-		ArrayList<BigDecimal> amounts = new ArrayList<>();
-		long key = transaction.getEpochMilli();
+
 		BigDecimal amount = transaction.getAmount();
 
-		if (transactions.get(key) == null) {
-			amounts.add(amount);
+		long time = transaction.getNanoseconds();
 
-			transactions.put(transaction.getEpochMilli(), amounts);
+		if (transactions.get(time) != null) {
+			BigDecimal value = transactions.get(time);
+			transactions.put(time, value.add(amount));
 		} else {
-			ArrayList<BigDecimal> value = transactions.get(key);
-			value.add(amount);
+			transactions.put(time, amount);
 		}
 
 	}
@@ -43,14 +42,14 @@ public class State implements IState {
 	}
 
 	@Override
-	public HashMap<Long, ArrayList<BigDecimal>> retrieve() {
+	public HashMap<Long, BigDecimal> retrieve() {
 		return transactions;
 	}
 
-	public HashMap<Long, ArrayList<BigDecimal>> discard() {
-		HashMap<Long, ArrayList<BigDecimal>> out = new HashMap<>();
+	public HashMap<Long, BigDecimal> discard() {
+		HashMap<Long, BigDecimal> out = new HashMap<>();
 
-		long oneMinuteAgo = oneMinuteAgo();
+		long oneMinuteAgo = time;
 
 		Set<Long> keys = transactions.keySet();
 
@@ -62,13 +61,6 @@ public class State implements IState {
 
 		return out;
 
-	}
-
-	private long oneMinuteAgo() {
-		long now = ZonedDateTime.now().withZoneSameInstant(ZoneOffset.UTC).toInstant().toEpochMilli();
-		long minute = 60 * 1000;
-		long oneMinuteAgo = now - minute;
-		return oneMinuteAgo;
 	}
 
 }
