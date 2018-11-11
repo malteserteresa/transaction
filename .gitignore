@@ -1,6 +1,8 @@
 # Source : https://github.com/github/gitignore
 # Maven, Node, Python, Rails
 
+# n26
+/home/tcake/Projects/Java/transactions-statistics-iq84dffc47/src/it
 # Maven
 
 target/
@@ -225,3 +227,5 @@ pickle-email-*.html
 
 # Ignore node_modules
 node_modules/
+/.classpath
+/.project
